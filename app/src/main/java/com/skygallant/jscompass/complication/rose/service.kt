@@ -43,7 +43,7 @@ var accelerometerReading = FloatArray(3)
 var magnetometerReading = FloatArray(3)
 var hasPermission: Boolean = false
 
-class JSRoseService : SuspendingComplicationDataSourceService(), SensorEventListener {
+class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
 
     private var myLocationCallback = object : LocationCallback() {
         override fun onLocationResult(p0: LocationResult) {
