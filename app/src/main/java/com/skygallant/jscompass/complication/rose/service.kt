@@ -1,24 +1,18 @@
 package com.skygallant.jscompass.complication.rose
 
-import android.Manifest
 import android.content.ComponentName
 import android.content.Context
-import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.location.Location
 import android.util.Log
-import androidx.core.app.ActivityCompat
 import androidx.wear.watchface.complications.data.ComplicationData
 import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.data.PlainComplicationText
 import androidx.wear.watchface.complications.data.RangedValueComplicationData
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import androidx.wear.watchface.complications.datasource.SuspendingComplicationDataSourceService
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 import com.skygallant.jscompass.complication.rose.data.HEADING_KEY
 import com.skygallant.jscompass.complication.rose.data.dataStore
 import kotlinx.coroutines.flow.first
@@ -26,11 +20,6 @@ import kotlinx.coroutines.flow.map
 import java.util.Locale
 
 
-const val TAG: String = "JSCompanionRose"
-lateinit var sensorManager: SensorManager
-var myLocation: Location? = null
-var accelerometerReading = FloatArray(3)
-var magnetometerReading = FloatArray(3)
 /**
 var myLocationCallback = object : LocationCallback() {
     override fun onLocationResult(p0: LocationResult) {
@@ -56,18 +45,17 @@ val myLocationCallback: LocationCallback = object : LocationCallback() {
 }
 **/
 
-
+const val TAG: String = "JSCompanionRose"
 class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
 
+
+
+
     companion object {
-        fun checkPermission(thisContext: Context): Boolean {
-            return ActivityCompat.checkSelfPermission(
-                thisContext,
-                Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        }
-        val myWorkRequest = OneTimeWorkRequestBuilder<BgLocationWorker>()
-            .build()
+        lateinit var sensorManager: SensorManager
+
+        var accelerometerReading = FloatArray(3)
+        var magnetometerReading = FloatArray(3)
     }
 
     private fun doSensors() {
@@ -104,7 +92,6 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
     ) {
         Log.d(TAG, "onComplicationActivated(): $complicationInstanceId")
 
-        WorkManager.getInstance(applicationContext).enqueue(myWorkRequest)
         doSensors()
 
     }
@@ -175,11 +162,22 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
 
     override fun onSensorChanged(eventCall: SensorEvent?) {
         if (eventCall != null) {
-            val event = eventCall!!
-            if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-                System.arraycopy(event.values, 0, accelerometerReading, 0, accelerometerReading.size)
-            } else if (event.sensor.type == Sensor.TYPE_MAGNETIC_FIELD) {
-                System.arraycopy(event.values, 0, magnetometerReading, 0, magnetometerReading.size)
+            if (eventCall.sensor.type == Sensor.TYPE_ACCELEROMETER) {
+                System.arraycopy(
+                    eventCall.values,
+                    0,
+                    accelerometerReading,
+                    0,
+                    accelerometerReading.size
+                )
+            } else if (eventCall.sensor.type == Sensor.TYPE_MAGNETIC_FIELD) {
+                System.arraycopy(
+                    eventCall.values,
+                    0,
+                    magnetometerReading,
+                    0,
+                    magnetometerReading.size
+                )
             }
         }
     }

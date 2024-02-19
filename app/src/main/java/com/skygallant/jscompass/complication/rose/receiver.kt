@@ -1,39 +1,66 @@
 package com.skygallant.jscompass.complication.rose
 
+import android.Manifest
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.hardware.GeomagneticField
 import android.hardware.SensorManager
+import android.location.Location
 import android.util.Log
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import androidx.datastore.preferences.core.edit
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
-import com.skygallant.jscompass.complication.rose.Service.Companion.checkPermission
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.skygallant.jscompass.complication.rose.data.HEADING_KEY
 import com.skygallant.jscompass.complication.rose.data.dataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.tasks.await
 
 class Receiver : BroadcastReceiver() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-
+    private fun checkPermission(thisContext: Context): Boolean {
+        return ActivityCompat.checkSelfPermission(
+            thisContext,
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+    }
     private fun piFun(x: Float): Float {
         val magic: Float = 180f / kotlin.math.PI.toFloat()
         return x * magic
     }
+    private suspend fun getDeviceLocation(context: Context): Location? {
+        val fLP: FusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
+        return if (checkPermission(context)) {
+            try {
+                fLP.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null).await()
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+    }
 
     private fun doCompass(gotCon: Context): Int {
         var heading: Float
-        var rotationMatrix = FloatArray(9)
-        var orientationAngles = FloatArray(3)
+        var location: Location?
+        val rotationMatrix = FloatArray(9)
+        val orientationAngles = FloatArray(3)
 
-        SensorManager.getRotationMatrix(rotationMatrix, null, accelerometerReading, magnetometerReading)
+        SensorManager.getRotationMatrix(rotationMatrix, null, Service.accelerometerReading, Service.magnetometerReading)
         SensorManager.getOrientation(rotationMatrix, orientationAngles)
+
 
         heading = orientationAngles[0]
         Log.d(TAG, "calculate: $heading")
@@ -47,18 +74,22 @@ class Receiver : BroadcastReceiver() {
         /*
         heading = CompassHelper.calculateHeading(accelerometerReading, magnetometerReading)
         Log.d(TAG, "calculate: $heading")
-        heading = CompassHelper.convertRadtoDeg(heading)
+        heading = CompassHelper.convertRadToDeg(heading)
         Log.d(TAG, "convert: $heading")
         heading = CompassHelper.map180to360(heading)
         Log.d(TAG, "map: $heading")
          */
 
         if (checkPermission(gotCon)) {
-            if (myLocation != null) {
+            runBlocking {
+                location = getDeviceLocation(gotCon)
+            }
+
+            if (location != null) {
                 val geoField = GeomagneticField(
-                    myLocation!!.latitude.toFloat(),
-                    myLocation!!.longitude.toFloat(),
-                    myLocation!!.altitude.toFloat(),
+                    location!!.latitude.toFloat(),
+                    location!!.longitude.toFloat(),
+                    location!!.altitude.toFloat(),
                     System.currentTimeMillis()
                 )
                 heading += geoField.declination
@@ -66,9 +97,14 @@ class Receiver : BroadcastReceiver() {
                     heading -= 360f
                 }
                 Log.d(TAG, "mag: ${geoField.declination}")
+            } else {
+                val text = "Rose Pos"
+                val duration = Toast.LENGTH_SHORT
+                val toast = Toast.makeText(gotCon, text, duration)
+                toast.show()
             }
         } else {
-            val text = "Check Perms"
+            val text = "Rose Perms"
             val duration = Toast.LENGTH_SHORT
             val toast = Toast.makeText(gotCon, text, duration)
             toast.show()
