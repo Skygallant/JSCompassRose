@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.hardware.GeomagneticField
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -14,6 +15,7 @@ import android.hardware.SensorManager
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import androidx.datastore.preferences.core.edit
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
 import com.skygallant.jscompass.complication.rose.data.HEADING_KEY
@@ -58,7 +60,14 @@ class Receiver : BroadcastReceiver(), SensorEventListener {
         Log.d(TAG, "map: $heading")
          */
 
-        if (hasPermission) {
+        val checkPermission: Boolean =
+            ActivityCompat.checkSelfPermission(
+                gotCon,
+                android.Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+
+        if (checkPermission) {
             if (myLocation != null) {
                 val geoField = GeomagneticField(
                     myLocation!!.latitude.toFloat(),
@@ -76,9 +85,15 @@ class Receiver : BroadcastReceiver(), SensorEventListener {
                 val duration = Toast.LENGTH_SHORT
                 val toast = Toast.makeText(gotCon, text, duration)
                 toast.show()
-                FLP.requestLocationUpdates(myLocationRequest, myLocationCallback, Looper.myLooper())
+                FLP.requestLocationUpdates(myUrgentLocationRequest, myLocationCallback, Looper.myLooper())
             }
+        } else {
+            val text = "Check Perms"
+            val duration = Toast.LENGTH_SHORT
+            val toast = Toast.makeText(gotCon, text, duration)
+            toast.show()
         }
+
 
         Log.d(TAG, "heading: $heading")
         return heading.toInt()

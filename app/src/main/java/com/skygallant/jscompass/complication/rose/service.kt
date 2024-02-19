@@ -12,7 +12,7 @@ import android.hardware.SensorManager
 import android.location.Location
 import android.os.Looper
 import android.util.Log
-import androidx.core.content.ContextCompat
+import androidx.core.app.ActivityCompat
 import androidx.wear.watchface.complications.data.ComplicationData
 import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.data.PlainComplicationText
@@ -26,14 +26,12 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import com.intentfilter.androidpermissions.NotificationSettings
-import com.intentfilter.androidpermissions.PermissionManager
-import com.intentfilter.androidpermissions.models.DeniedPermissions
 import com.skygallant.jscompass.complication.rose.data.HEADING_KEY
 import com.skygallant.jscompass.complication.rose.data.dataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.util.Locale
+
 
 const val TAG: String = "JSCompanionRose"
 lateinit var sensorManager: SensorManager
@@ -41,7 +39,6 @@ lateinit var FLP: FusedLocationProviderClient
 var myLocation: Location? = null
 var accelerometerReading = FloatArray(3)
 var magnetometerReading = FloatArray(3)
-var hasPermission: Boolean = false
 /**
 var myLocationCallback = object : LocationCallback() {
     override fun onLocationResult(p0: LocationResult) {
@@ -55,6 +52,7 @@ var myLocationCallback = object : LocationCallback() {
 }
 **/
 var myLocationCallback: LocationCallback = object : LocationCallback() {
+    @SuppressLint("MissingPermission")
     override fun onLocationResult(locationResult: LocationResult) {
         for (location in locationResult.locations.asReversed()) {
             if (location != null) {
@@ -62,57 +60,25 @@ var myLocationCallback: LocationCallback = object : LocationCallback() {
                 break
             }
         }
+        if (myLocation == null) {
+            myLocation = FLP.lastLocation.result
+        }
     }
 }
-val myLocationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10)
-    .setWaitForAccurateLocation(false)
+val myLocationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
+    .setMinUpdateDistanceMeters(10000f)
+    .build()
+val myUrgentLocationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 100)
     .setMaxUpdates(1)
     .build()
 
 class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
 
-    private fun doPermissions() {
-        hasPermission = false
-        Log.d(TAG, "hasPermission: $hasPermission")
-        when (PackageManager.PERMISSION_GRANTED) {
-            ContextCompat.checkSelfPermission(
-                applicationContext,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) -> {
-                hasPermission = true
-                Log.d(TAG, "hasPermission: $hasPermission")
-            }
-            ContextCompat.checkSelfPermission(
-                applicationContext,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) -> {
-                hasPermission = true
-                Log.d(TAG, "hasPermission: $hasPermission")
-            }
-        }
-        if (!hasPermission) {
-            val instance = PermissionManager.getInstance(applicationContext)
-            val notificationSettings = NotificationSettings.Builder()
-                .withTitle(R.string.title_action_needed)
-                .withMessage(R.string.message_permission_required)
-                .withSmallIcon(R.mipmap.ic_launcher)
-                .build()
-            instance.setNotificationSettings(notificationSettings)
-            val permissionManager = PermissionManager.getInstance(applicationContext)
-            permissionManager.checkPermissions(
-                setOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION
-                ), object : PermissionManager.PermissionRequestListener {
-                    override fun onPermissionGranted() {
-                        Log.d(TAG, "permission granted")
-                        hasPermission = true
-                    }
-                    override fun onPermissionDenied(p0: DeniedPermissions?) {
-                        Log.d(TAG, "permission denied: $p0")
-                        hasPermission = false
-                    }
-                })
-        }
+    private fun checkPermission(): Boolean {
+        return ActivityCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     @SuppressLint("MissingPermission")
@@ -139,7 +105,7 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
         Log.d(TAG, "tracking mag")
 
 
-        if(hasPermission) {
+        if(checkPermission()) {
             Log.d(TAG, "tracking pos")
             FLP.requestLocationUpdates(myLocationRequest, myLocationCallback, Looper.myLooper())
         }
@@ -148,8 +114,10 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
     private fun shutdownSensors() {
         sensorManager.unregisterListener(this)
         Log.d(TAG, "shutdown mag")
-        FLP.removeLocationUpdates(myLocationCallback)
-        Log.d(TAG, "shutdown pos")
+        if(checkPermission()) {
+            FLP.removeLocationUpdates(myLocationCallback)
+            Log.d(TAG, "shutdown pos")
+        }
     }
 
 
@@ -159,7 +127,6 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
     ) {
         Log.d(TAG, "onComplicationActivated(): $complicationInstanceId")
 
-        doPermissions()
         doSensors()
 
     }

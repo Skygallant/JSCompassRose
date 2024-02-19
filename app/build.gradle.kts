@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.skygallant.jscompass.complication.rose"
-        minSdk = 31
+        minSdk = 33
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -42,5 +42,6 @@ dependencies {
     implementation("androidx.wear.watchface:watchface-complications-data-source-ktx:1.2.1")
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation("com.google.android.gms:play-services-location:21.1.0")
-    implementation("io.github.nishkarsh:android-permissions:2.1.8")
+    implementation("androidx.activity:activity-ktx:1.8.2")
+    implementation("androidx.fragment:fragment-ktx:1.6.2")
 }
