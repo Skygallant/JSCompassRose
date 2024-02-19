@@ -42,19 +42,34 @@ var myLocation: Location? = null
 var accelerometerReading = FloatArray(3)
 var magnetometerReading = FloatArray(3)
 var hasPermission: Boolean = false
+/**
+var myLocationCallback = object : LocationCallback() {
+    override fun onLocationResult(p0: LocationResult) {
+        super.onLocationResult(p0)
 
-class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
-
-    private var myLocationCallback = object : LocationCallback() {
-        override fun onLocationResult(p0: LocationResult) {
-            super.onLocationResult(p0)
-
-            p0.let {
-                Log.d(TAG, "ping")
-                myLocation = it.lastLocation
+        p0.let {
+            Log.d(TAG, "ping")
+            myLocation = it.lastLocation
+        }
+    }
+}
+**/
+var myLocationCallback: LocationCallback = object : LocationCallback() {
+    override fun onLocationResult(locationResult: LocationResult) {
+        for (location in locationResult.locations.asReversed()) {
+            if (location != null) {
+                myLocation = location
+                break
             }
         }
     }
+}
+val myLocationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10)
+    .setWaitForAccurateLocation(false)
+    .setMaxUpdates(1)
+    .build()
+
+class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
 
     private fun doPermissions() {
         hasPermission = false
@@ -122,10 +137,7 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
             )
         }
         Log.d(TAG, "tracking mag")
-        val myLocationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10)
-            .setWaitForAccurateLocation(false)
-            .setMaxUpdates(1)
-            .build()
+
 
         if(hasPermission) {
             Log.d(TAG, "tracking pos")

@@ -11,6 +11,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.datastore.preferences.core.edit
@@ -71,10 +72,11 @@ class Receiver : BroadcastReceiver(), SensorEventListener {
                 }
                 Log.d(TAG, "mag: ${geoField.declination}")
             } else {
-                val text = "No Signal"
+                val text = "Declination"
                 val duration = Toast.LENGTH_SHORT
                 val toast = Toast.makeText(gotCon, text, duration)
                 toast.show()
+                FLP.requestLocationUpdates(myLocationRequest, myLocationCallback, Looper.myLooper())
             }
         }
 
