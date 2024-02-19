@@ -1,7 +1,6 @@
 package com.skygallant.jscompass.complication.rose
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
@@ -10,7 +9,6 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.location.Location
-import android.os.Looper
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.wear.watchface.complications.data.ComplicationData
@@ -19,12 +17,8 @@ import androidx.wear.watchface.complications.data.PlainComplicationText
 import androidx.wear.watchface.complications.data.RangedValueComplicationData
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import androidx.wear.watchface.complications.datasource.SuspendingComplicationDataSourceService
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.skygallant.jscompass.complication.rose.data.HEADING_KEY
 import com.skygallant.jscompass.complication.rose.data.dataStore
 import kotlinx.coroutines.flow.first
@@ -34,7 +28,6 @@ import java.util.Locale
 
 const val TAG: String = "JSCompanionRose"
 lateinit var sensorManager: SensorManager
-lateinit var FLP: FusedLocationProviderClient
 var myLocation: Location? = null
 var accelerometerReading = FloatArray(3)
 var magnetometerReading = FloatArray(3)
@@ -50,42 +43,35 @@ var myLocationCallback = object : LocationCallback() {
     }
 }
 **/
-var myLocationCallback: LocationCallback = object : LocationCallback() {
-    @SuppressLint("MissingPermission")
+
+/**
+val myLocationCallback: LocationCallback = object : LocationCallback() {
     override fun onLocationResult(locationResult: LocationResult) {
-        for (location in locationResult.locations.asReversed()) {
+        for (location in locationResult.locations) {
             if (location != null) {
-                myLocation = location
-                break
+                Service.updateLocation(location)
             }
-        }
-        if (myLocation == null) {
-            myLocation = FLP.lastLocation.result
         }
     }
 }
-val myLocationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
-    .setMinUpdateDistanceMeters(10000f)
-    .build()
-val myUrgentLocationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 100)
-    .setMaxUpdates(1)
-    .build()
+**/
+
 
 class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
+
     companion object {
-        lateinit var appContext: Context
-        fun checkPermission(): Boolean {
+        fun checkPermission(thisContext: Context): Boolean {
             return ActivityCompat.checkSelfPermission(
-                appContext,
+                thisContext,
                 Manifest.permission.ACCESS_BACKGROUND_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         }
+        val myWorkRequest = OneTimeWorkRequestBuilder<BgLocationWorker>()
+            .build()
     }
 
-    @SuppressLint("MissingPermission")
     private fun doSensors() {
         sensorManager = applicationContext.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        FLP = LocationServices.getFusedLocationProviderClient(applicationContext)
 
         sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also { accelerometer ->
             sensorManager.registerListener(
@@ -104,21 +90,11 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
             )
         }
         Log.d(TAG, "tracking mag")
-
-
-        if(checkPermission()) {
-            Log.d(TAG, "tracking pos")
-            FLP.requestLocationUpdates(myLocationRequest, myLocationCallback, Looper.myLooper())
-        }
     }
 
     private fun shutdownSensors() {
         sensorManager.unregisterListener(this)
         Log.d(TAG, "shutdown mag")
-        if(checkPermission()) {
-            FLP.removeLocationUpdates(myLocationCallback)
-            Log.d(TAG, "shutdown pos")
-        }
     }
 
 
@@ -128,7 +104,7 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
     ) {
         Log.d(TAG, "onComplicationActivated(): $complicationInstanceId")
 
-        appContext = applicationContext
+        WorkManager.getInstance(applicationContext).enqueue(myWorkRequest)
         doSensors()
 
     }

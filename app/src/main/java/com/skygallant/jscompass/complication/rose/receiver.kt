@@ -1,6 +1,5 @@
 package com.skygallant.jscompass.complication.rose
 
-import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -8,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.hardware.GeomagneticField
 import android.hardware.SensorManager
-import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.datastore.preferences.core.edit
@@ -29,7 +27,6 @@ class Receiver : BroadcastReceiver() {
         return x * magic
     }
 
-    @SuppressLint("MissingPermission")
     private fun doCompass(gotCon: Context): Int {
         var heading: Float
         var rotationMatrix = FloatArray(9)
@@ -56,7 +53,7 @@ class Receiver : BroadcastReceiver() {
         Log.d(TAG, "map: $heading")
          */
 
-        if (checkPermission()) {
+        if (checkPermission(gotCon)) {
             if (myLocation != null) {
                 val geoField = GeomagneticField(
                     myLocation!!.latitude.toFloat(),
@@ -65,16 +62,10 @@ class Receiver : BroadcastReceiver() {
                     System.currentTimeMillis()
                 )
                 heading += geoField.declination
-                if(heading > 360f) {
+                if (heading > 360f) {
                     heading -= 360f
                 }
                 Log.d(TAG, "mag: ${geoField.declination}")
-            } else {
-                val text = "Declination"
-                val duration = Toast.LENGTH_SHORT
-                val toast = Toast.makeText(gotCon, text, duration)
-                toast.show()
-                FLP.requestLocationUpdates(myUrgentLocationRequest, myLocationCallback, Looper.myLooper())
             }
         } else {
             val text = "Check Perms"
