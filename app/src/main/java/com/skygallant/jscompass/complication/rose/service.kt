@@ -2,6 +2,7 @@ package com.skygallant.jscompass.complication.rose
 
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -50,6 +51,7 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
 
 
 
+    private val serviceIntent = Intent(applicationContext, LocationUpdatesService::class.java)
 
     companion object {
         lateinit var sensorManager: SensorManager
@@ -92,7 +94,9 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
     ) {
         Log.d(TAG, "onComplicationActivated(): $complicationInstanceId")
 
+
         doSensors()
+        startService(serviceIntent)
 
     }
 
@@ -157,6 +161,7 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
         Log.d(TAG, "onComplicationDeactivated(): $complicationInstanceId")
 
         shutdownSensors()
+        stopService(serviceIntent)
 
     }
 

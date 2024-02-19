@@ -15,46 +15,22 @@ import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.datastore.preferences.core.edit
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
 import com.skygallant.jscompass.complication.rose.data.HEADING_KEY
 import com.skygallant.jscompass.complication.rose.data.dataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.tasks.await
 
 class Receiver : BroadcastReceiver() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private fun checkPermission(thisContext: Context): Boolean {
-        return ActivityCompat.checkSelfPermission(
-            thisContext,
-            Manifest.permission.ACCESS_BACKGROUND_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-    }
+
     private fun piFun(x: Float): Float {
         val magic: Float = 180f / kotlin.math.PI.toFloat()
         return x * magic
     }
-    private suspend fun getDeviceLocation(context: Context): Location? {
-        val fLP: FusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
-        return if (checkPermission(context)) {
-            try {
-                fLP.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null).await()
-            } catch (e: Exception) {
-                null
-            }
-        } else {
-            null
-        }
-    }
-
     private fun doCompass(gotCon: Context): Int {
         var heading: Float
-        var location: Location?
         val rotationMatrix = FloatArray(9)
         val orientationAngles = FloatArray(3)
 
@@ -81,10 +57,6 @@ class Receiver : BroadcastReceiver() {
          */
 
         if (checkPermission(gotCon)) {
-            runBlocking {
-                location = getDeviceLocation(gotCon)
-            }
-
             if (location != null) {
                 val geoField = GeomagneticField(
                     location!!.latitude.toFloat(),
@@ -159,6 +131,14 @@ class Receiver : BroadcastReceiver() {
     }
 
     companion object {
+        var location: Location? = null
+        fun checkPermission(thisContext: Context): Boolean {
+            return ActivityCompat.checkSelfPermission(
+                thisContext,
+                Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+
         private const val EXTRA_DATA_SOURCE_COMPONENT =
             "com.skygallant.jscompass.complication.rose.action.DATA_SOURCE_COMPONENT"
         private const val EXTRA_COMPLICATION_ID =
