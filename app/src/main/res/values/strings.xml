@@ -1,6 +1,4 @@
 <resources>
     <string name="app_name">JS Compass Rose</string>
     <string name="complications_label">Spinner</string>
-    <string name="title_action_needed">Action Needed</string>
-    <string name="message_permission_required">Permission required.</string>
 </resources>

@@ -6,18 +6,14 @@ import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.hardware.GeomagneticField
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
-import androidx.core.app.ActivityCompat
 import androidx.datastore.preferences.core.edit
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
+import com.skygallant.jscompass.complication.rose.Service.Companion.checkPermission
 import com.skygallant.jscompass.complication.rose.data.HEADING_KEY
 import com.skygallant.jscompass.complication.rose.data.dataStore
 import kotlinx.coroutines.CoroutineScope
@@ -25,7 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
-class Receiver : BroadcastReceiver(), SensorEventListener {
+class Receiver : BroadcastReceiver() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private fun piFun(x: Float): Float {
@@ -60,14 +56,7 @@ class Receiver : BroadcastReceiver(), SensorEventListener {
         Log.d(TAG, "map: $heading")
          */
 
-        val checkPermission: Boolean =
-            ActivityCompat.checkSelfPermission(
-                gotCon,
-                android.Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-
-
-        if (checkPermission) {
+        if (checkPermission()) {
             if (myLocation != null) {
                 val geoField = GeomagneticField(
                     myLocation!!.latitude.toFloat(),
@@ -170,17 +159,5 @@ class Receiver : BroadcastReceiver(), SensorEventListener {
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
         }
-    }
-
-    override fun onSensorChanged(event: SensorEvent) {
-        if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-            System.arraycopy(event.values, 0, accelerometerReading, 0, accelerometerReading.size)
-        } else if (event.sensor.type == Sensor.TYPE_MAGNETIC_FIELD) {
-            System.arraycopy(event.values, 0, magnetometerReading, 0, magnetometerReading.size)
-        }
-    }
-
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        //
     }
 }

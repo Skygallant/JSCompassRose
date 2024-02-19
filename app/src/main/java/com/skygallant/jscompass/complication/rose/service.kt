@@ -17,7 +17,6 @@ import androidx.wear.watchface.complications.data.ComplicationData
 import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.data.PlainComplicationText
 import androidx.wear.watchface.complications.data.RangedValueComplicationData
-import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import androidx.wear.watchface.complications.datasource.SuspendingComplicationDataSourceService
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -73,12 +72,14 @@ val myUrgentLocationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACC
     .build()
 
 class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
-
-    private fun checkPermission(): Boolean {
-        return ActivityCompat.checkSelfPermission(
-            this,
-            Manifest.permission.ACCESS_BACKGROUND_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
+    companion object {
+        lateinit var appContext: Context
+        fun checkPermission(): Boolean {
+            return ActivityCompat.checkSelfPermission(
+                appContext,
+                Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -127,15 +128,20 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
     ) {
         Log.d(TAG, "onComplicationActivated(): $complicationInstanceId")
 
+        appContext = applicationContext
         doSensors()
 
     }
 
     override fun getPreviewData(type: ComplicationType): ComplicationData {
-        return ShortTextComplicationData.Builder(
-            text = PlainComplicationText.Builder(text = "330").build(),
-            contentDescription = PlainComplicationText.Builder(text = "Short Text version of Heading.").build()
+        return RangedValueComplicationData.Builder(
+            value = 330f,
+            min = 0f,
+            max = 360f,
+            contentDescription = PlainComplicationText
+                .Builder(text = "Ranged Value version of Heading.").build()
         )
+            .setText(PlainComplicationText.Builder(text = "330").build())
             .setTapAction(null)
             .build()
     }
