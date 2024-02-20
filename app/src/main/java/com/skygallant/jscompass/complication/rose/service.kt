@@ -64,7 +64,7 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
     }
 
     private fun doSensors() {
-        sensorManager = applicationContext.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        sensorManager = this.getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
         sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also { accelerometer ->
             sensorManager.registerListener(
