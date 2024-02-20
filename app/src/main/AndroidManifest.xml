@@ -48,6 +48,17 @@
 
         </service>
 
+        <service
+            android:name=".LocationUpdatesService"
+            android:enabled="true"
+            android:exported="false"
+            android:permission="android.permission.ACCESS_BACKGROUND_LOCATION" >
+            <intent-filter>
+                <action android:name="com.example.ACTION_START_LOCATION_UPDATES" />
+            </intent-filter>
+        </service>
+
+
         <receiver android:name=".Receiver" />
 
     </application>

@@ -6,6 +6,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import com.google.android.gms.location.*
+import java.util.concurrent.TimeUnit
 
 class LocationUpdatesService : Service() {
 
@@ -17,6 +18,12 @@ class LocationUpdatesService : Service() {
     }
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        if (Receiver.checkPermission(this)) {
+            fusedLocationClient.lastLocation
+                .addOnSuccessListener {
+                    Receiver.location = it
+                }
+        }
         startLocationUpdates()
         return START_NOT_STICKY
     }
@@ -29,12 +36,13 @@ class LocationUpdatesService : Service() {
 **/
     private fun startLocationUpdates() {
         val locationRequest =
-            LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 1000).apply {
+            LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, TimeUnit.HOURS.toMillis(1)).apply {
                 setMinUpdateDistanceMeters(1000f)
             }.build()
 
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
+                Log.d(TAG, "location results")
                 for (location in locationResult.locations) {
                     Log.d(TAG, "Lat: ${location.latitude}, Long: ${location.longitude}")
                     if (location != null) {

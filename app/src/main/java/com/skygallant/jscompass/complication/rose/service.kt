@@ -51,10 +51,11 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
 
 
 
-    private val serviceIntent = Intent(applicationContext, LocationUpdatesService::class.java)
+
 
     companion object {
         lateinit var sensorManager: SensorManager
+        lateinit var serviceIntent: Intent
 
         var accelerometerReading = FloatArray(3)
         var magnetometerReading = FloatArray(3)
@@ -96,6 +97,7 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
 
 
         doSensors()
+        serviceIntent = Intent(applicationContext, LocationUpdatesService::class.java)
         startService(serviceIntent)
 
     }
