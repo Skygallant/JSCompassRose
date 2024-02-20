@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.datastore.preferences.core.edit
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
+import com.skygallant.jscompass.complication.rose.Service.Companion.initLoc
 import com.skygallant.jscompass.complication.rose.data.HEADING_KEY
 import com.skygallant.jscompass.complication.rose.data.dataStore
 import kotlinx.coroutines.CoroutineScope
@@ -57,11 +58,11 @@ class Receiver : BroadcastReceiver() {
          */
 
         if (checkPermission(gotCon)) {
-            if (location != null) {
+            if (initLoc) {
                 val geoField = GeomagneticField(
-                    location!!.latitude.toFloat(),
-                    location!!.longitude.toFloat(),
-                    location!!.altitude.toFloat(),
+                    location.latitude.toFloat(),
+                    location.longitude.toFloat(),
+                    location.altitude.toFloat(),
                     System.currentTimeMillis()
                 )
                 heading += geoField.declination
@@ -131,7 +132,7 @@ class Receiver : BroadcastReceiver() {
     }
 
     companion object {
-        var location: Location? = null
+        var location = Location("Google Maps")
         fun checkPermission(thisContext: Context): Boolean {
             return ActivityCompat.checkSelfPermission(
                 thisContext,

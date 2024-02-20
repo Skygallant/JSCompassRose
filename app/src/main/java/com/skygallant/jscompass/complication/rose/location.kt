@@ -6,6 +6,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import com.google.android.gms.location.*
+import com.skygallant.jscompass.complication.rose.Service.Companion.initLoc
 import java.util.concurrent.TimeUnit
 
 class LocationUpdatesService : Service() {
@@ -22,6 +23,7 @@ class LocationUpdatesService : Service() {
             fusedLocationClient.lastLocation
                 .addOnSuccessListener {
                     Receiver.location = it
+                    initLoc = true
                 }
         }
         startLocationUpdates()

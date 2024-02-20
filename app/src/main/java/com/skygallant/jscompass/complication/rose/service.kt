@@ -57,6 +57,8 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
         lateinit var sensorManager: SensorManager
         lateinit var serviceIntent: Intent
 
+        var initLoc: Boolean = false
+
         var accelerometerReading = FloatArray(3)
         var magnetometerReading = FloatArray(3)
     }
