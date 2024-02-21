@@ -9,19 +9,18 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.GeomagneticField
 import android.hardware.SensorManager
-import android.location.Location
 import android.util.Log
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
-import androidx.datastore.preferences.core.edit
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
-import com.skygallant.jscompass.complication.rose.Service.Companion.initLoc
-import com.skygallant.jscompass.complication.rose.data.HEADING_KEY
-import com.skygallant.jscompass.complication.rose.data.dataStore
+import com.skygallant.jscompass.complication.rose.data.complicationsDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class Receiver : BroadcastReceiver() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -57,12 +56,28 @@ class Receiver : BroadcastReceiver() {
         Log.d(TAG, "map: $heading")
          */
 
+        val isLoc = runBlocking {
+            gotCon.complicationsDataStore.data
+                .map { complicationsDataStore ->
+                    complicationsDataStore.initLoc
+                }
+                .first()
+        }
+
+        val thisLocation = runBlocking {
+            gotCon.complicationsDataStore.data
+                .map { complicationsDataStore ->
+                    complicationsDataStore.myLocation
+                }
+                .first()
+        }
+
         if (checkPermission(gotCon)) {
-            if (initLoc) {
+            if (isLoc) {
                 val geoField = GeomagneticField(
-                    location.latitude.toFloat(),
-                    location.longitude.toFloat(),
-                    location.altitude.toFloat(),
+                    thisLocation.latitude.toFloat(),
+                    thisLocation.longitude.toFloat(),
+                    thisLocation.altitude.toFloat(),
                     System.currentTimeMillis()
                 )
                 heading += geoField.declination
@@ -102,14 +117,10 @@ class Receiver : BroadcastReceiver() {
         // Launches coroutine to update the DataStore counter value.
         scope.launch {
             try {
-                context.dataStore.edit { preferences ->
-
-
-
-                    preferences[HEADING_KEY] = doCompass(context)
-
-
-
+                context.complicationsDataStore.updateData {
+                    it.copy(
+                        headingKey = doCompass(context)
+                    )
                 }
 
                 // Request an update for the complication that has just been tapped, that is,
@@ -132,7 +143,6 @@ class Receiver : BroadcastReceiver() {
     }
 
     companion object {
-        var location = Location("Google Maps")
         fun checkPermission(thisContext: Context): Boolean {
             return ActivityCompat.checkSelfPermission(
                 thisContext,

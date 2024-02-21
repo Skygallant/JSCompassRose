@@ -14,8 +14,7 @@ import androidx.wear.watchface.complications.data.PlainComplicationText
 import androidx.wear.watchface.complications.data.RangedValueComplicationData
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import androidx.wear.watchface.complications.datasource.SuspendingComplicationDataSourceService
-import com.skygallant.jscompass.complication.rose.data.HEADING_KEY
-import com.skygallant.jscompass.complication.rose.data.dataStore
+import com.skygallant.jscompass.complication.rose.data.complicationsDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.util.Locale
@@ -56,8 +55,6 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
     companion object {
         lateinit var sensorManager: SensorManager
         lateinit var serviceIntent: Intent
-
-        var initLoc: Boolean = false
 
         var accelerometerReading = FloatArray(3)
         var magnetometerReading = FloatArray(3)
@@ -130,9 +127,9 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
                 request.complicationInstanceId
             )
 
-        val number: Int = applicationContext.dataStore.data
-            .map { preferences ->
-                preferences[HEADING_KEY] ?: 0
+        val number: Int = applicationContext.complicationsDataStore.data
+            .map { complicationsDataStore ->
+                complicationsDataStore.headingKey
             }
             .first()
 

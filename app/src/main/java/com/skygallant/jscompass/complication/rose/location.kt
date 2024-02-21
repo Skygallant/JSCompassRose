@@ -2,11 +2,13 @@ package com.skygallant.jscompass.complication.rose
 
 import android.app.Service
 import android.content.Intent
+import android.location.Location
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import com.google.android.gms.location.*
-import com.skygallant.jscompass.complication.rose.Service.Companion.initLoc
+import com.skygallant.jscompass.complication.rose.data.complicationsDataStore
+import kotlinx.coroutines.runBlocking
 import java.util.concurrent.TimeUnit
 
 class LocationUpdatesService : Service() {
@@ -19,12 +21,20 @@ class LocationUpdatesService : Service() {
     }
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        var x = Location("foo")
         if (Receiver.checkPermission(this)) {
             fusedLocationClient.lastLocation
                 .addOnSuccessListener {
-                    Receiver.location = it
-                    initLoc = true
+                    x = it
                 }
+            runBlocking {
+                applicationContext.complicationsDataStore.updateData {
+                    it.copy(
+                        myLocation = x,
+                        initLoc = true
+                    )
+                }
+            }
         }
         startLocationUpdates()
         return START_NOT_STICKY
@@ -48,7 +58,13 @@ class LocationUpdatesService : Service() {
                 for (location in locationResult.locations) {
                     Log.d(TAG, "Lat: ${location.latitude}, Long: ${location.longitude}")
                     if (location != null) {
-                        Receiver.location = location
+                        runBlocking {
+                            applicationContext.complicationsDataStore.updateData {
+                                it.copy(
+                                    myLocation = location
+                                )
+                            }
+                        }
                     }
                 }
             }
