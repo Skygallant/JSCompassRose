@@ -81,9 +81,6 @@ class Receiver : BroadcastReceiver() {
                     System.currentTimeMillis()
                 )
                 heading += geoField.declination
-                if (heading > 360f) {
-                    heading -= 360f
-                }
                 Log.d(TAG, "mag: ${geoField.declination}")
             } else {
                 val text = "Rose Pos"
@@ -100,6 +97,11 @@ class Receiver : BroadcastReceiver() {
 
 
         Log.d(TAG, "heading: $heading")
+        if (heading > 360f) {
+            heading -= 360f
+        } else if (heading < 0) {
+            heading += 360f
+        }
         return heading.toInt()
     }
 

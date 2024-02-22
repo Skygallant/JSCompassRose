@@ -29,6 +29,7 @@ data class ComplicationsDataStore(
     var initLoc: Boolean = false,
     @Serializable(with = LocationSerializer::class)
     var myLocation: Location = Location("Google Maps API"),
+    var restarting: Boolean = false,
 )
 object ComplicationsDataSerializer : Serializer<ComplicationsDataStore> {
     override val defaultValue: ComplicationsDataStore

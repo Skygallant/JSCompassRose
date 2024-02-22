@@ -8,6 +8,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.util.Log
+import android.widget.Toast
 import androidx.wear.watchface.complications.data.ComplicationData
 import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.data.PlainComplicationText
@@ -17,6 +18,7 @@ import androidx.wear.watchface.complications.datasource.SuspendingComplicationDa
 import com.skygallant.jscompass.complication.rose.data.complicationsDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
 import java.util.Locale
 
 
@@ -51,6 +53,7 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
 
 
 
+    private var mIsSensorUpdateEnabled = false
 
     companion object {
         lateinit var sensorManager: SensorManager
@@ -79,11 +82,13 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
                 SensorManager.SENSOR_DELAY_UI
             )
         }
+        mIsSensorUpdateEnabled = true
         Log.d(TAG, "tracking mag")
     }
 
     private fun shutdownSensors() {
         sensorManager.unregisterListener(this)
+        mIsSensorUpdateEnabled = false
         Log.d(TAG, "shutdown mag")
     }
 
@@ -116,6 +121,27 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
 
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData? {
         Log.d(TAG, "onComplicationRequest() id: ${request.complicationInstanceId}")
+
+        runBlocking {
+            if (applicationContext.complicationsDataStore.data
+                    .map { complicationsDataStore ->
+                        complicationsDataStore.restarting
+                    }
+                    .first()) {
+                val text = "Rose Booting"
+                val duration = Toast.LENGTH_SHORT
+                val toast = Toast.makeText(applicationContext, text, duration)
+                toast.show()
+                doSensors()
+                serviceIntent = Intent(applicationContext, LocationUpdatesService::class.java)
+                startService(serviceIntent)
+                applicationContext.complicationsDataStore.updateData {
+                    it.copy(
+                        restarting = false,
+                    )
+                }
+            }
+        }
 
         // Create Tap Action so that the user can trigger an update by tapping the complication.
         val thisDataSource = ComponentName(this, javaClass)
@@ -167,7 +193,7 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
     }
 
     override fun onSensorChanged(eventCall: SensorEvent?) {
-        if (eventCall != null) {
+        if (eventCall != null && mIsSensorUpdateEnabled) {
             if (eventCall.sensor.type == Sensor.TYPE_ACCELEROMETER) {
                 System.arraycopy(
                     eventCall.values,
