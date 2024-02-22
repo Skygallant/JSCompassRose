@@ -25,10 +25,10 @@ import kotlinx.serialization.json.jsonPrimitive
 
 @Serializable
 data class ComplicationsDataStore(
-    val headingKey: Int = 0,
+    var headingKey: Int = 0,
     var initLoc: Boolean = false,
     @Serializable(with = LocationSerializer::class)
-    val myLocation: Location = Location("Google Maps API"),
+    var myLocation: Location = Location("Google Maps API"),
 )
 object ComplicationsDataSerializer : Serializer<ComplicationsDataStore> {
     override val defaultValue: ComplicationsDataStore
