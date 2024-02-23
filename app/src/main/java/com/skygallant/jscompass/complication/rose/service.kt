@@ -121,7 +121,7 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
 
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData? {
         Log.d(TAG, "onComplicationRequest() id: ${request.complicationInstanceId}")
-
+        doSensors()
         runBlocking {
             if (applicationContext.complicationsDataStore.data
                     .map { complicationsDataStore ->
@@ -132,7 +132,7 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
                 val duration = Toast.LENGTH_SHORT
                 val toast = Toast.makeText(applicationContext, text, duration)
                 toast.show()
-                doSensors()
+                //doSensors()
                 serviceIntent = Intent(applicationContext, LocationUpdatesService::class.java)
                 startService(serviceIntent)
                 applicationContext.complicationsDataStore.updateData {
@@ -211,6 +211,7 @@ class Service : SuspendingComplicationDataSourceService(), SensorEventListener {
                     magnetometerReading.size
                 )
             }
+            //shutdownSensors()
         }
     }
 

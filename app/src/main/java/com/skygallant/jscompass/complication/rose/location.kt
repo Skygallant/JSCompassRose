@@ -23,17 +23,20 @@ class LocationUpdatesService : Service() {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         var x = Location("foo")
         if (Receiver.checkPermission(this)) {
-            fusedLocationClient.lastLocation
-                .addOnSuccessListener {
-                    x = it
-                }
             runBlocking {
-                applicationContext.complicationsDataStore.updateData {
-                    it.copy(
-                        myLocation = x,
-                        initLoc = true
-                    )
-                }
+                fusedLocationClient.lastLocation
+                    .addOnSuccessListener { location ->
+                        x = location
+
+                        runBlocking {
+                            applicationContext.complicationsDataStore.updateData {
+                                it.copy(
+                                    myLocation = x,
+                                    initLoc = true
+                                )
+                            }
+                        }
+                    }
             }
         }
         startLocationUpdates()
